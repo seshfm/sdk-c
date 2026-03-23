@@ -272,6 +272,7 @@ typedef struct SeshPluginDef {
                                                                                 \
 typedef struct {                                                                \
     void* user;                                                                 \
+    SeshParam* params_storage;                                                  \
     SeshParamList param_list;                                                   \
     SeshScratch scratch;                                                        \
 } SeshInstance;                                                                 \
@@ -296,8 +297,13 @@ SESH__EXPORT(sesh_create) SESH__EXTERN_C                      \
 void* sesh_create(void) {                                                       \
     SeshInstance* inst = (SeshInstance*)malloc(sizeof(SeshInstance));             \
     inst->user = (def).create(44100.0f);                                        \
-    inst->param_list.count = (uint32_t)(def).num_params;                        \
-    inst->param_list.params = (def).params;                                     \
+    int np = (def).num_params;                                                  \
+    const SeshParam* src = (def).params;                                        \
+    inst->params_storage = (SeshParam*)malloc(                                  \
+        (np > 0 ? np : 1) * sizeof(SeshParam));                                \
+    for (int i = 0; i < np; i++) inst->params_storage[i] = src[i];             \
+    inst->param_list.count = (uint32_t)np;                                      \
+    inst->param_list.params = inst->params_storage;                             \
     inst->scratch.data = (float*)malloc(                                         \
         SESH_SCRATCH_BUFS * SESH_SCRATCH_FRAMES * sizeof(float));              \
     inst->scratch.cursor = 0;                                                   \
@@ -309,6 +315,7 @@ void sesh_destroy(void* raw) {                                                  
     if (!raw) return;                                                           \
     SeshInstance* inst = (SeshInstance*)raw;                                     \
     (def).destroy(inst->user);                                                  \
+    free(inst->params_storage);                                                 \
     free(inst->scratch.data);                                                   \
     free(inst);                                                                 \
 }                                                                               \
@@ -449,20 +456,30 @@ public:
  * The class must inherit from sesh::Plugin and implement process().
  */
 #define SESH_PLUGIN_CPP(T)                                                      \
-    static sesh::Plugin* sesh__cpp_instance = nullptr;                          \
-    static SeshParamList sesh__cpp_param_list;                                  \
-                                                                                \
+    static void* sesh__cpp_create(float);                                       \
+    static void sesh__cpp_destroy(void*);                                       \
+    static void sesh__cpp_process(void*, SeshProcessContext*);                  \
+    static void sesh__cpp_draw(void*, SeshDrawContext*);                        \
+    static SeshPluginDef sesh__plugin_def = {                                   \
+        sesh__cpp_create,                                                       \
+        sesh__cpp_destroy,                                                      \
+        sesh__cpp_process,                                                      \
+        sesh__cpp_draw,                                                         \
+        0.0f,                                                                   \
+        nullptr,                                                                \
+        0,                                                                      \
+    };                                                                          \
+    SESH__EXPORTS(sesh__plugin_def)                                             \
     static void* sesh__cpp_create(float sr) {                                   \
         (void)sr;                                                               \
         T* p = new T();                                                         \
-        sesh__cpp_instance = p;                                                 \
-        sesh__cpp_param_list.count = (uint32_t)p->params.size();                \
-        sesh__cpp_param_list.params = p->params.data();                         \
+        sesh__plugin_def.params = (const SeshParam*)p->params.data();           \
+        sesh__plugin_def.num_params = (int)p->params.size();                    \
+        sesh__plugin_def.draw_width = p->draw_width;                            \
         return p;                                                               \
     }                                                                           \
     static void sesh__cpp_destroy(void* inst) {                                 \
         delete static_cast<T*>(inst);                                           \
-        sesh__cpp_instance = nullptr;                                           \
     }                                                                           \
     static void sesh__cpp_process(void* inst, SeshProcessContext* ctx) {        \
         sesh::ProcessContext cpp_ctx;                                            \
@@ -478,17 +495,7 @@ public:
         cpp_ctx.width = ctx->width;                                             \
         cpp_ctx.height = ctx->height;                                           \
         static_cast<T*>(inst)->draw(cpp_ctx);                                   \
-    }                                                                           \
-    static const SeshPluginDef sesh__plugin_def = {                             \
-        sesh__cpp_create,                                                       \
-        sesh__cpp_destroy,                                                      \
-        sesh__cpp_process,                                                      \
-        sesh__cpp_draw,                                                         \
-        0.0f,                                                                   \
-        nullptr,                                                                \
-        0,                                                                      \
-    };                                                                          \
-    SESH__EXPORTS(sesh__plugin_def)
+    }
 
 #endif /* __cplusplus */
 
@@ -1159,6 +1166,7 @@ void sesh_scratch_free(SeshScratch* s) {
 extern "C" {
 #endif
 int __imported_wasi_snapshot_preview1_fd_close(int fd) { (void)fd; return 8; }
+int __imported_wasi_snapshot_preview1_sched_yield(void) { return 0; }
 int __imported_wasi_snapshot_preview1_fd_seek(int fd, long long offset, int whence, long long* newoffset) {
     (void)fd; (void)offset; (void)whence; (void)newoffset; return 8;
 }
