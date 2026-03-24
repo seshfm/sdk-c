@@ -348,7 +348,7 @@ void sesh_process(void* raw, float* ptr, uint32_t frames,                       
 SESH__EXPORT(sesh_draw) SESH__EXTERN_C                        \
 int32_t sesh_draw(void* raw) {                                                  \
     SeshInstance* inst = (SeshInstance*)raw;                                     \
-    if (!(def).draw) return 0;                                                  \
+    if (!(def).draw || (def).draw_width == 0.0f) return 0;                      \
     SeshDrawContext ctx;                                                         \
     ctx.width = (def).draw_width;                                               \
     ctx.height = 244.0f;                                                        \
