@@ -71,7 +71,7 @@ set(CMAKE_CXX_COMPILER_WORKS TRUE)
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 set(CMAKE_C_FLAGS_INIT "-pthread -fno-exceptions")
-set(CMAKE_CXX_FLAGS_INIT "-pthread -fno-exceptions")
+set(CMAKE_CXX_FLAGS_INIT "-pthread -fno-exceptions -Wno-c23-extensions")
 
 set(CMAKE_EXE_LINKER_FLAGS_INIT
     "-nostartfiles -Wl,--no-entry -Wl,--import-memory -Wl,--shared-memory -Wl,--max-memory=4294967296")

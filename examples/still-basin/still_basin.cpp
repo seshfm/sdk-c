@@ -4,6 +4,13 @@
 #include <cstring>
 #include <array>
 
+static const unsigned char backdrop_data[] = {
+    #embed "assets/backdrop.png"
+};
+static const unsigned char strip_data[] = {
+    #embed "assets/strip_0.png"
+};
+
 static constexpr float SR = 44100.0f;
 static constexpr int NUM_LINES = 16;
 static constexpr int NUM_AP_PER_LINE = 3;
@@ -152,8 +159,13 @@ public:
     float dc_y_prev[2]{};
     SeshBiquadState hp_state[2]{};
 
+    SeshImageId bg_id = 0;
+    SeshImageId strip_id = 0;
+    bool images_loaded = false;
+
     StillBasin() {
         sesh_scratch_init(&scratch);
+        draw_width = 433.8f;
 
         params = {
             {"Decay",   0.10f, 30.00f,    4.00f},
@@ -323,6 +335,24 @@ public:
             sesh_vec_mul_add(ctx.channels[1], dry_r, dry_gain, frames);
             sesh_vec_mul_add(ctx.channels[1], hp_out_r, wet_gain, frames);
         }
+    }
+
+    void draw(sesh::DrawContext& ctx) override {
+        if (!bg_id) bg_id = sesh_load_image(backdrop_data, sizeof(backdrop_data));
+        if (!strip_id) strip_id = sesh_load_image(strip_data, sizeof(strip_data));
+
+        sesh_draw_bg_image(bg_id);
+
+        // Width (param 3)
+        sesh_draw_knob_strip(3, strip_id, 63.5f, 61.5f, 149.0f, 149.0f, 88, 114.5f, 109.0f, 46.5f, 48.5f);
+        // Shimmer (param 1)
+        sesh_draw_knob_strip(1, strip_id, 80.0f, 2.5f, 132.0f, 132.0f, 88, 125.0f, 44.5f, 41.5f, 43.0f);
+        // Decay (param 0)
+        sesh_draw_knob_strip(0, strip_id, 118.5f, 4.0f, 200.0f, 200.0f, 88, 187.0f, 68.0f, 62.5f, 65.0f);
+        // Tone (param 2)
+        sesh_draw_knob_strip(2, strip_id, 225.5f, 2.5f, 132.0f, 132.0f, 88, 270.5f, 44.5f, 41.5f, 43.0f);
+        // Mix (param 4)
+        sesh_draw_knob_strip(4, strip_id, 224.5f, 61.5f, 149.0f, 149.0f, 88, 275.5f, 109.0f, 46.5f, 48.5f);
     }
 };
 
