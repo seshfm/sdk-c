@@ -19,7 +19,6 @@ This produces `still_basin.wasm`. The toolchain automatically downloads [wasi-sd
 ### C++
 
 ```cpp
-#define SESH_IMPLEMENTATION
 #include "sesh.h"
 
 class MyDelay : public sesh::Plugin {
@@ -56,7 +55,6 @@ SESH_PLUGIN_CPP(MyDelay)
 ### C
 
 ```c
-#define SESH_IMPLEMENTATION
 #include "sesh.h"
 
 typedef struct { float gain; } MyGain;

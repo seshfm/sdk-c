@@ -1,4 +1,3 @@
-#define SESH_IMPLEMENTATION
 #include "sesh.h"
 
 #include <cmath>

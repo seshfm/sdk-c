@@ -1140,27 +1140,29 @@ static inline void sesh_vec_exp(float* dst, const float* src, int len) {
 }
 
 /* -----------------------------------------------------------------------
- * Implementation (include once in exactly one .c or .cpp file)
+ * Scratch pool helpers
  * ----------------------------------------------------------------------- */
 
-#ifdef SESH_IMPLEMENTATION
-
-/* Scratch pool init/teardown helpers */
-void sesh_scratch_init(SeshScratch* s) {
+static inline void sesh_scratch_init(SeshScratch* s) {
     s->data = (float*)sesh_calloc(SESH_SCRATCH_BUFS * SESH_SCRATCH_FRAMES * sizeof(float));
     s->cursor = 0;
 }
 
-void sesh_scratch_free(SeshScratch* s) {
+static inline void sesh_scratch_free(SeshScratch* s) {
     if (s->data) {
         free(s->data);
         s->data = 0;
     }
 }
 
-/* WASI stubs: musl's abort path pulls in fd_close/fd_seek/fd_write.
-   These are never called in a plugin that doesn't do I/O. Providing
-   stubs here eliminates the WASI imports entirely. */
+/* -----------------------------------------------------------------------
+ * WASI stubs (WASM only)
+ *
+ * musl's abort path pulls in fd_close/fd_seek/fd_write and the threads
+ * runtime pulls in sched_yield. These are never called in a plugin that
+ * doesn't do I/O. Providing stubs eliminates all WASI imports.
+ * ----------------------------------------------------------------------- */
+
 #ifdef __wasm__
 #ifdef __cplusplus
 extern "C" {
@@ -1177,7 +1179,5 @@ int __imported_wasi_snapshot_preview1_fd_write(int fd, const void* iovs, int iov
 }
 #endif
 #endif /* __wasm__ */
-
-#endif /* SESH_IMPLEMENTATION */
 
 #endif /* SESH_H */
